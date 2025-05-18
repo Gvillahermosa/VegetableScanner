@@ -35,7 +35,7 @@ dependencies:
   shimmer: ^2.0.0
   image_picker: ^0.8.7+5
   intl: ^0.18.1
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -63,6 +63,8 @@ flutter:
     - assets/images/realtime_icon.png
     - assets/images/identify_icon.png
     - assets/images/applogo.png
+    - assets/images/google_logo.png
+    - assets/images/vegetables_pattern.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

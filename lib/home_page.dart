@@ -7,6 +7,7 @@ import 'placeholder_page.dart';
 import 'vegetable_calendar_page.dart';
 import 'vegetable_storage_page.dart';
 import 'profile_page.dart';
+import 'login_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -276,7 +277,7 @@ class HomePage extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => const ProfilePage(),
+              builder: (context) => const LoginPage(),//ProfilePage()
             ),
           );
         },
