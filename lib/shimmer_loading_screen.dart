@@ -4,7 +4,7 @@
   import 'home_page.dart'; // Import your home page
 
   class ShimmerLoadingScreen extends StatefulWidget {
-    const ShimmerLoadingScreen({Key? key}) : super(key: key);
+    const ShimmerLoadingScreen({super.key});
 
     @override
     State<ShimmerLoadingScreen> createState() => _ShimmerLoadingScreenState();

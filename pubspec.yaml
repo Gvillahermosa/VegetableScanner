@@ -35,6 +35,11 @@ dependencies:
   shimmer: ^2.0.0
   image_picker: ^0.8.7+5
   intl: ^0.18.1
+  firebase_core: ^2.31.0
+  firebase_auth: ^4.17.8
+  google_sign_in: ^6.2.1
+  cloud_firestore: ^4.13.1
+  
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +70,13 @@ flutter:
     - assets/images/applogo.png
     - assets/images/google_logo.png
     - assets/images/vegetables_pattern.png
+    - assets/images/applogo.png
+    - assets/images/INNOVA8ORS.png
+    - assets/images/members_pic/jasce.png
+    - assets/images/members_pic/bartt.png
+    - assets/images/members_pic/claudine.png
+    - assets/images/members_pic/jhen.png
+    - assets/images/members_pic/pearly.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

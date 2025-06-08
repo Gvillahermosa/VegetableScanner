@@ -3,7 +3,7 @@ import 'dart:async';
 import 'home_page.dart'; // Import your home page
 
 class SkeletonLoadingScreen extends StatefulWidget {
-  const SkeletonLoadingScreen({Key? key}) : super(key: key);
+  const SkeletonLoadingScreen({super.key});
 
   @override
   State<SkeletonLoadingScreen> createState() => _SkeletonLoadingScreenState();

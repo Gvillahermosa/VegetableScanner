@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'notifications_page.dart';
 import 'contact_us_page.dart';
 import 'our_team_page.dart';
+import 'profile_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_page.dart';
 
 class AboutUsPage extends StatelessWidget {
   const AboutUsPage({super.key});
@@ -17,20 +20,20 @@ class AboutUsPage extends StatelessWidget {
             const SizedBox(height: 30),
             // Logo
             Container(
-              width: 120,
-              height: 120,
+              width: 390,
+              height: 190,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
-                shape: BoxShape.circle,
+                borderRadius:
+                    BorderRadius.circular(12), // Optional: for rounded corners
               ),
-              child: const Center(
-                  child: Text(
-                'Logo',
-                style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500),
-              )),
+              child: Center(
+                child: Image.asset(
+                  'assets/images/INNOVA8ORS.png',
+                  width: 350, // Adjust to fit within the container
+                  height: 250,
+                  fit: BoxFit.contain, // or BoxFit.cover
+                ),
+              ),
             ),
             const SizedBox(height: 30),
             Padding(
@@ -160,7 +163,7 @@ class AboutUsPage extends StatelessWidget {
               icon: Icons.home,
               isSelected: false,
               onTap: () => Navigator.pop(context)),
-          _buildCircularProfileButton(),
+          _buildCircularProfileButton(context),
         ],
       ),
     );
@@ -186,15 +189,41 @@ class AboutUsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCircularProfileButton() {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.8),
-        shape: BoxShape.circle,
+  Widget _buildCircularProfileButton(BuildContext context) {
+    final User? user = FirebaseAuth.instance.currentUser;
+    final String? photoUrl = user?.photoURL;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) =>
+                user != null ? const ProfilePage() : const LoginPage(),
+          ),
+        );
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        padding: const EdgeInsets.all(2), // space for border
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.green,
+            width: 2.5,
+          ),
+        ),
+        child: CircleAvatar(
+          backgroundColor: Colors.grey[200],
+          backgroundImage:
+              (user != null && photoUrl != null && photoUrl.isNotEmpty)
+                  ? NetworkImage(photoUrl)
+                  : null,
+          child: (user == null || photoUrl == null || photoUrl.isEmpty)
+              ? const Icon(Icons.person, color: Colors.green)
+              : null,
+        ),
       ),
-      child: const Icon(Icons.person, color: Colors.white, size: 24),
     );
   }
 }

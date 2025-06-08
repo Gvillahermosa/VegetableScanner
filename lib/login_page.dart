@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:vegetable_app/home_page.dart';
 import 'package:vegetable_app/profile_page.dart';
 import 'signup_page.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -19,6 +23,55 @@ class _LoginPageState extends State<LoginPage> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      final googleSignIn = GoogleSignIn();
+
+      // 🔑 Force the account picker by signing out first
+      await googleSignIn.signOut();
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return; // User canceled the sign-in
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user != null) {
+        final usersRef = FirebaseFirestore.instance.collection('users');
+        final doc = usersRef.doc(user.uid);
+
+        final docSnapshot = await doc.get();
+        if (!docSnapshot.exists) {
+          await doc.set({
+            'email': user.email,
+            'name': user.displayName,
+            'photoURL': user.photoURL,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        // ✅ Navigate to HomePage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Sign-In failed: $e')),
+      );
+    }
   }
 
   @override
@@ -113,13 +166,34 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
-                              // Handle login logic here
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const ProfilePage()),
-                              );
+                            onPressed: () async {
+                              try {
+                                final credential = await FirebaseAuth.instance
+                                    .signInWithEmailAndPassword(
+                                  email: _emailController.text.trim(),
+                                  password: _passwordController.text.trim(),
+                                );
+                                if (credential.user != null) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ProfilePage()),
+                                  );
+                                }
+                              } on FirebaseAuthException catch (e) {
+                                String message = '';
+                                if (e.code == 'user-not-found') {
+                                  message = 'No user found for that email.';
+                                } else if (e.code == 'wrong-password') {
+                                  message = 'Wrong password.';
+                                } else {
+                                  message =
+                                      'An error occurred. Please try again.';
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(message)));
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
@@ -174,7 +248,7 @@ class _LoginPageState extends State<LoginPage> {
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              // Handle Google sign in
+                              signInWithGoogle();
                             },
                             icon: Image.asset(
                               'assets/images/google_logo.png',
@@ -182,7 +256,7 @@ class _LoginPageState extends State<LoginPage> {
                               width: 24.0,
                             ),
                             label: const Text(
-                              'Sign in with Google',
+                              'Log in with Google',
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontWeight: FontWeight.w500,

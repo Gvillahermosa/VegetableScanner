@@ -1,5 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'notifications_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'profile_page.dart';
+import 'login_page.dart';
+
+final User? user = FirebaseAuth.instance.currentUser;
+final String? photoUrl = user?.photoURL;
 
 class ContactUsPage extends StatefulWidget {
   const ContactUsPage({super.key});
@@ -10,14 +17,10 @@ class ContactUsPage extends StatefulWidget {
 
 class _ContactUsPageState extends State<ContactUsPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _messageController = TextEditingController();
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -101,7 +104,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
                         Icon(Icons.phone, color: Colors.red[400], size: 20),
                         const SizedBox(width: 10),
                         const Text(
-                          '+63 912 345 6789',
+                          '+63 956 768 6637',
                           style: TextStyle(fontSize: 14),
                         ),
                       ],
@@ -145,70 +148,6 @@ class _ContactUsPageState extends State<ContactUsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name field
-                    const Text('Name', style: TextStyle(fontSize: 14)),
-                    const SizedBox(height: 5),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        hintText: 'Your name',
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // Email field
-                    const Text('Email', style: TextStyle(fontSize: 14)),
-                    const SizedBox(height: 5),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'Your email address',
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 15),
-
                     // Message field
                     const Text('Message', style: TextStyle(fontSize: 14)),
                     const SizedBox(height: 5),
@@ -242,41 +181,28 @@ class _ContactUsPageState extends State<ContactUsPage> {
 
                     // Send Message button
                     SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            // Process form data
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Message sent successfully!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+  width: double.infinity,
+  height: 50,
+  child: ElevatedButton(
+    onPressed: () => sendMessage(context, _messageController),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.green,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+    ),
+    child: const Text(
+      'Send Message',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  ),
+)
 
-                            // Clear form
-                            _nameController.clear();
-                            _emailController.clear();
-                            _messageController.clear();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text(
-                          'Send Message',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
+
                   ],
                 ),
               ),
@@ -286,6 +212,57 @@ class _ContactUsPageState extends State<ContactUsPage> {
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
+  }
+
+  void sendMessage(BuildContext context, dynamic messageController) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      // User not logged in, redirect to login page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+      return;
+    }
+
+    // Proceed with sending message (your Firestore logic here)
+    try {
+      await FirebaseFirestore.instance.collection('messages').add({
+        'uid': user.uid,
+        'email': user.email,
+        'message': messageController.text,
+        'timestamp': Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Message Sent!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior
+              .floating, // Optional: Makes it float above the bottom
+          shape: RoundedRectangleBorder(
+            // Optional: Adds rounded corners
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+
+      messageController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Failed to send Message!'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior
+              .floating, // Optional: Makes it float above the bottom
+          shape: RoundedRectangleBorder(
+            // Optional: Adds rounded corners
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
@@ -319,7 +296,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
             isSelected: false,
             onTap: () => Navigator.popUntil(context, (route) => route.isFirst),
           ),
-          _buildCircularProfileButton(),
+          _buildCircularProfileButton(context),
         ],
       ),
     );
@@ -348,18 +325,38 @@ class _ContactUsPageState extends State<ContactUsPage> {
     );
   }
 
-  Widget _buildCircularProfileButton() {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.8),
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.person,
-        color: Colors.white,
-        size: 24,
+  Widget _buildCircularProfileButton(BuildContext context) {
+    final User? user = FirebaseAuth.instance.currentUser;
+    final String? photoUrl = user?.photoURL;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const ProfilePage(), // Navigate to profile
+          ),
+        );
+      },
+      child: Container(
+        width: 48, // Adjust size if needed
+        height: 48,
+        padding: const EdgeInsets.all(2), // Space for the border
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.green, // Green border color
+            width: 2.5, // Border thickness
+          ),
+        ),
+        child: CircleAvatar(
+          backgroundColor: Colors.grey[200],
+          backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+              ? NetworkImage(photoUrl)
+              : null,
+          child: (photoUrl == null || photoUrl.isEmpty)
+              ? const Icon(Icons.person, color: Colors.green)
+              : null,
+        ),
       ),
     );
   }

@@ -6,8 +6,10 @@ import 'camera_screen.dart';
 import 'placeholder_page.dart';
 import 'vegetable_calendar_page.dart';
 import 'vegetable_storage_page.dart';
-import 'profile_page.dart';
 import 'login_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'profile_page.dart';
+
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -263,27 +265,43 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildCircularProfileButton(context) {
-    return Container(
-      width: 42,
-      height: 42,
+ Widget _buildCircularProfileButton(BuildContext context) {
+  final User? user = FirebaseAuth.instance.currentUser;
+  final String? photoUrl = user?.photoURL;
+
+  return GestureDetector(
+    onTap: () {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              user != null ? const ProfilePage() : const LoginPage(),
+        ),
+      );
+    },
+    child: Container(
+      width: 48,
+      height: 48,
+      padding: const EdgeInsets.all(2), // space for border
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.8),
         shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.green,
+          width: 2.5,
+        ),
       ),
-      child: IconButton(
-        icon: const Icon(Icons.person, color: Colors.white, size: 24),
-        padding: EdgeInsets.zero,
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const LoginPage(),//ProfilePage()
-            ),
-          );
-        },
+      child: CircleAvatar(
+        backgroundColor: Colors.grey[200],
+        backgroundImage: (user != null && photoUrl != null && photoUrl.isNotEmpty)
+            ? NetworkImage(photoUrl)
+            : null,
+        child: (user == null || photoUrl == null || photoUrl.isEmpty)
+            ? const Icon(Icons.person, color: Colors.green)
+            : null,
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   void _openCamera(BuildContext context, String mode) async {
     try {

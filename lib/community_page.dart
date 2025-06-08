@@ -1,5 +1,16 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'notifications_page.dart';
+import 'profile_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_page.dart';
+import 'askcommunity_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+
+
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({super.key});
@@ -18,24 +29,57 @@ class _CommunityPageState extends State<CommunityPage> {
     _loadPosts();
   }
 
-  void _loadPosts() {
+  String _formatTimeAgo(Timestamp? timestamp) {
+    if (timestamp == null) return 'Some time ago';
+    final now = DateTime.now();
+    final postTime = timestamp.toDate();
+    final difference = now.difference(postTime);
+
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds}s ago';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
+  }
+
+  void _loadPosts() async {
     setState(() {
       _isLoading = true;
     });
-    Future.delayed(const Duration(milliseconds: 500), () {
+
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('community_posts')
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      List<Map<String, dynamic>> loadedPosts = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'userName': data['userName'] ?? 'Unknown',
+          'content': data['question'] ?? '',
+          'userPhoto': data['userPhoto'] ?? '',
+          'timeAgo': _formatTimeAgo(data['timestamp']),
+          'likes': data['likes'] ?? 0,
+          'dislikes': data['dislikes'] ?? 0,
+          'imageBase64': data['imageUrl'] ?? '', // rename properly here
+        };
+      }).toList();
+
       setState(() {
-        _posts = List.generate(5, (index) {
-          return {
-            'userName': 'Jasce Belia',
-            'content': 'Lorem Ipsum sit amet, consectetur adipiscing elit.',
-            'timeAgo': '6h ago',
-            'likes': 1,
-            'dislikes': 0,
-          };
-        });
+        _posts = loadedPosts;
         _isLoading = false;
       });
-    });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error loading posts: $e');
+    }
   }
 
   @override
@@ -53,8 +97,12 @@ class _CommunityPageState extends State<CommunityPage> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Ask Community feature coming soon!')));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AskCommunityPage(),
+            ),
+          );
         },
         backgroundColor: Colors.green,
         icon: const Icon(Icons.edit, color: Colors.white),
@@ -66,6 +114,16 @@ class _CommunityPageState extends State<CommunityPage> {
   }
 
   Widget _buildPostItem(Map<String, dynamic> post) {
+    Uint8List? imageBytes;
+
+    try {
+      if (post['imageBase64'] != null && post['imageBase64'].isNotEmpty) {
+        imageBytes = base64Decode(post['imageBase64']);
+      }
+    } catch (e) {
+      print('Error decoding image: $e');
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 1,
@@ -73,34 +131,50 @@ class _CommunityPageState extends State<CommunityPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.asset(
-              'assets/images/vegetables_bg.png',
+          if (imageBytes != null)
+            ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.memory(
+                imageBytes,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            )
+          else
+            Container(
               height: 120,
               width: double.infinity,
-              fit: BoxFit.cover,
+              color: Colors.grey[300],
+              child: const Icon(Icons.image, size: 50, color: Colors.grey),
             ),
-          ),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: Colors.grey,
-                    shape: BoxShape.circle,
-                  ),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.grey[300],
+                  backgroundImage:
+                      post['userPhoto'] != null && post['userPhoto'].isNotEmpty
+                          ? NetworkImage(post['userPhoto'])
+                          : null,
+                  child:
+                      (post['userPhoto'] == null || post['userPhoto'].isEmpty)
+                          ? const Icon(Icons.person, color: Colors.white)
+                          : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(post['content'],
-                          style: const TextStyle(color: Colors.black87)),
+                      Text(
+                        '${post['userName']}: ${post['content']}',
+                        style: const TextStyle(
+                            color: Colors.black87, fontWeight: FontWeight.w500),
+                      ),
                       const SizedBox(height: 4),
                       Text(post['timeAgo'],
                           style: TextStyle(
@@ -161,7 +235,7 @@ class _CommunityPageState extends State<CommunityPage> {
               icon: Icons.home,
               isSelected: false,
               onTap: () => Navigator.of(context).pop()),
-          _buildCircularProfileButton(),
+          _buildCircularProfileButton(context),
         ],
       ),
     );
@@ -184,13 +258,41 @@ class _CommunityPageState extends State<CommunityPage> {
     );
   }
 
-  Widget _buildCircularProfileButton() {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.8), shape: BoxShape.circle),
-      child: const Icon(Icons.person, color: Colors.white, size: 24),
+  Widget _buildCircularProfileButton(BuildContext context) {
+    final User? user = FirebaseAuth.instance.currentUser;
+    final String? photoUrl = user?.photoURL;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) =>
+                user != null ? const ProfilePage() : const LoginPage(),
+          ),
+        );
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.green,
+            width: 2.5,
+          ),
+        ),
+        child: CircleAvatar(
+          backgroundColor: Colors.grey[200],
+          backgroundImage:
+              (user != null && photoUrl != null && photoUrl.isNotEmpty)
+                  ? NetworkImage(photoUrl)
+                  : null,
+          child: (user == null || photoUrl == null || photoUrl.isEmpty)
+              ? const Icon(Icons.person, color: Colors.green)
+              : null,
+        ),
+      ),
     );
   }
 }

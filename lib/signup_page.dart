@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'profile_page.dart';
 
 class SignUpPage extends StatefulWidget {
-  const SignUpPage({Key? key}) : super(key: key);
+  const SignUpPage({super.key});
 
   @override
   State<SignUpPage> createState() => _SignUpPageState();
@@ -25,24 +29,94 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  void _handleSignUp() {
-    setState(() {
-      // Clear the error message initially
-      _errorMessage = '';
+  void _handleSignUp() async {
+    setState(() => _errorMessage = '');
 
-      // Password verification logic
-      if (_passwordController.text != _confirmPasswordController.text) {
-        _errorMessage = 'Passwords do not match.';
-      } else if (_passwordController.text.isEmpty ||
-          _confirmPasswordController.text.isEmpty) {
-        _errorMessage = 'Password fields cannot be empty.';
-      } else {
-        // Proceed with sign-up logic
-        _errorMessage = '';
-        // TODO: Implement successful sign-up logic
-        print('Sign-up successful for ${_nameController.text}');
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() => _errorMessage = 'Passwords do not match.');
+      return;
+    }
+
+    try {
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Save user info to Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'createdAt': Timestamp.now(),
+      });
+
+      print('Sign-up successful for ${_nameController.text}');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorMessage = e.message ?? 'Sign up failed');
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final googleSignIn = GoogleSignIn();
+
+      // 🔑 Force sign out to always show account picker
+      await googleSignIn.signOut();
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return; // User cancelled sign-in
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user != null) {
+        final usersRef = FirebaseFirestore.instance.collection('users');
+        final doc = await usersRef.doc(user.uid).get();
+
+        if (!doc.exists) {
+          await usersRef.doc(user.uid).set({
+            'uid': user.uid,
+            'name': user.displayName ?? '',
+            'email': user.email ?? '',
+            'photoUrl': user.photoURL ?? '',
+            'phone': user.phoneNumber ?? '',
+            'provider': 'google',
+            'role': 'user',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+          print('New user data saved to Firestore.');
+        } else {
+          print('User already exists in Firestore.');
+        }
       }
-    });
+
+      print('Google Sign-In successful: ${user?.email}');
+
+      // ✅ Navigate to profile page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorMessage = e.message ?? 'Google Sign-In failed');
+    }
   }
 
   @override
@@ -232,9 +306,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // Handle Google sign-up logic
-                            },
+                            onPressed: _signInWithGoogle,
                             icon: Image.asset(
                               'assets/images/google_logo.png',
                               height: 24.0,

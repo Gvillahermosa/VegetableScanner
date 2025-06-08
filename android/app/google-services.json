@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "11561504621",
+    "project_id": "vegetable-freshness",
+    "storage_bucket": "vegetable-freshness.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:11561504621:android:a0401ce4a899afd8989464",
+        "android_client_info": {
+          "package_name": "com.example.vegetable_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "11561504621-ub9n2nh8pjugl6tj4pukdadp851njvvj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.vegetable_app",
+            "certificate_hash": "564a23862489f3d3e28de3b9235899de34ecde92"
+          }
+        },
+        {
+          "client_id": "11561504621-kumciq0f178tae0r8t5kd47orm0c9qvt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsjF7kqrqHLA-69Y00XmSGj4V6wRpgurc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "11561504621-kumciq0f178tae0r8t5kd47orm0c9qvt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

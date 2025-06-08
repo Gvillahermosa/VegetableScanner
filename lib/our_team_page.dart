@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'notifications_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'profile_page.dart';
+import 'login_page.dart';
 
 class OurTeamPage extends StatelessWidget {
   const OurTeamPage({super.key});
@@ -55,31 +58,43 @@ class OurTeamPage extends StatelessWidget {
 
             // Team members list
             _buildTeamMemberCard(
-              name: 'Jasce Belia',
-              role: 'Lead Developer',
+              name: 'Ma. Jasce Nova E. Belia',
+              role: 'Team Leader / Backend Developer',
               bio:
                   'Jasce specializes in AI algorithms and has 5+ years of experience in developing machine learning solutions for agriculture technology.',
+              imagePath: 'assets/images/members_pic/jasce.png',
             ),
 
             _buildTeamMemberCard(
-              name: 'Maria Santos',
-              role: 'Agricultural Scientist',
+              name: 'Pearly L. Rellon',
+              role: 'Technical Writer',
               bio:
                   'Maria has a PhD in Agricultural Sciences and contributes expert knowledge on vegetable freshness indicators and storage conditions.',
+              imagePath: 'assets/images/members_pic/pearly.png',
             ),
 
             _buildTeamMemberCard(
-              name: 'David Chen',
-              role: 'UX/UI Designer',
+              name: 'Claudine A. Amancio',
+              role: 'QA specialists',
               bio:
                   'David brings 8 years of experience in creating intuitive user interfaces for mobile applications focused on agricultural solutions.',
+              imagePath: 'assets/images/members_pic/claudine.png',
             ),
 
             _buildTeamMemberCard(
-              name: 'Elena Rodriguez',
-              role: 'Data Scientist',
+              name: 'Jehn Clara Dhel Delicano',
+              role: 'Frontend Developer',
               bio:
                   'Elena specializes in computer vision and has trained multiple neural networks to accurately detect vegetable conditions.',
+              imagePath: 'assets/images/members_pic/jhen.png',
+            ),
+
+            _buildTeamMemberCard(
+              name: 'Bartt Johngil Sayago',
+              role: 'Backend Developer',
+              bio:
+                  'Elena specializes in computer vision and has trained multiple neural networks to accurately detect vegetable conditions.',
+              imagePath: 'assets/images/members_pic/bartt.png',
             ),
 
             const SizedBox(height: 30),
@@ -94,6 +109,7 @@ class OurTeamPage extends StatelessWidget {
     required String name,
     required String role,
     required String bio,
+    required String imagePath, // ← new parameter
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -114,18 +130,13 @@ class OurTeamPage extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile image
-            Container(
-              width: 60,
-              height: 60,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE0E0E0),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 32,
-                color: Colors.white,
+            // Profile image as a circle
+            ClipOval(
+              child: Image.asset(
+                imagePath,
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 16),
@@ -136,6 +147,7 @@ class OurTeamPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    textAlign: TextAlign.justify,
                     name,
                     style: const TextStyle(
                       fontSize: 16,
@@ -199,7 +211,7 @@ class OurTeamPage extends StatelessWidget {
             isSelected: false,
             onTap: () => Navigator.popUntil(context, (route) => route.isFirst),
           ),
-          _buildCircularProfileButton(),
+          _buildCircularProfileButton(context),
         ],
       ),
     );
@@ -228,18 +240,40 @@ class OurTeamPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCircularProfileButton() {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.8),
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.person,
-        color: Colors.white,
-        size: 24,
+  Widget _buildCircularProfileButton(BuildContext context) {
+    final User? user = FirebaseAuth.instance.currentUser;
+    final String? photoUrl = user?.photoURL;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) =>
+                user != null ? const ProfilePage() : const LoginPage(),
+          ),
+        );
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        padding: const EdgeInsets.all(2), // space for border
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.green,
+            width: 2.5,
+          ),
+        ),
+        child: CircleAvatar(
+          backgroundColor: Colors.grey[200],
+          backgroundImage:
+              (user != null && photoUrl != null && photoUrl.isNotEmpty)
+                  ? NetworkImage(photoUrl)
+                  : null,
+          child: (user == null || photoUrl == null || photoUrl.isEmpty)
+              ? const Icon(Icons.person, color: Colors.green)
+              : null,
+        ),
       ),
     );
   }
